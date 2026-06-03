@@ -12,6 +12,10 @@ Saved/
 Build/
 *.sln
 
-# Mac / Linux
+# OS
 .DS_Store
 Thumbs.db
+
+# Temp
+*.log
+*.tmp
