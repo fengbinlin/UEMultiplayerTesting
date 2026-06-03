@@ -1,0 +1,17 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userprefs
+
+# Unreal Engine
+Binaries/
+Intermediate/
+DerivedDataCache/
+Saved/
+Build/
+*.sln
+
+# Mac / Linux
+.DS_Store
+Thumbs.db
