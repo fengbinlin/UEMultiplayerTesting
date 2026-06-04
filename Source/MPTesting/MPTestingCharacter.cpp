@@ -12,8 +12,10 @@
 #include "InputActionValue.h"
 #include "MPTesting.h"
 #include "OnlineSubsystem.h"
+#include "OnlineSessionSettings.h"
 #include "Interfaces/OnlineSessionInterface.h"
-AMPTestingCharacter::AMPTestingCharacter()
+AMPTestingCharacter::AMPTestingCharacter():
+CreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this,&AMPTestingCharacter::OnCreateSessionComplete))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -140,6 +142,47 @@ void AMPTestingCharacter::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
+}
+
+void AMPTestingCharacter::CreateGameSession()
+{
+	// Called when pressing the 1 key
+	if (!OnlineSessionInterface.IsValid()) {
+		return;
+	}
+	// DestroySession if existing
+	auto ExistingSession = OnlineSessionInterface->GetNamedSession(NAME_GameSession);
+	if (ExistingSession != nullptr) {
+		OnlineSessionInterface->DestroySession(NAME_GameSession);
+	}
+	
+	OnlineSessionInterface->AddOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegate);
+
+	TSharedPtr<FOnlineSessionSettings> SessionSetting = MakeShareable(new FOnlineSessionSettings());
+	SessionSetting->bIsLANMatch = false;
+	SessionSetting->NumPublicConnections = 4;
+	SessionSetting->bAllowJoinInProgress = true;
+	SessionSetting->bAllowJoinViaPresence = true;
+	SessionSetting->bShouldAdvertise = true;
+	SessionSetting->bUsesPresence = true;
+	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	OnlineSessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *SessionSetting);
+	if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Blue, FString::Printf(TEXT("Created session Begin")));
+	}
+}
+
+void AMPTestingCharacter::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful) {
+	if (bWasSuccessful) {
+		if (GEngine) {
+			GEngine->AddOnScreenDebugMessage(-1,15.f,FColor::Blue,FString::Printf(TEXT("Created session: %s"), *SessionName.ToString()));
+		}
+	}
+	else {
+		if (GEngine) {
+			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Created session failed")));
+		}
+	}
 }
 
 
