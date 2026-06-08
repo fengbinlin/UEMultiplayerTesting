@@ -13,9 +13,11 @@
 #include "MPTesting.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSessionSettings.h"
+#include "Online/OnlineSessionNames.h"
 #include "Interfaces/OnlineSessionInterface.h"
 AMPTestingCharacter::AMPTestingCharacter():
-CreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this,&AMPTestingCharacter::OnCreateSessionComplete))
+CreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this,&AMPTestingCharacter::OnCreateSessionComplete)),
+FindSessionCompleteDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this,&AMPTestingCharacter::OnFindSessionComplete))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -172,6 +174,21 @@ void AMPTestingCharacter::CreateGameSession()
 	}
 }
 
+void AMPTestingCharacter::JoinGameSession()
+{
+	if (!OnlineSessionInterface.IsValid()) {
+		return;
+	}
+	OnlineSessionInterface->AddOnFindSessionsCompleteDelegate_Handle(FindSessionCompleteDelegate);
+	SessionSearch = MakeShareable(new FOnlineSessionSearch());
+	SessionSearch->MaxSearchResults = 2000;
+	SessionSearch->bIsLanQuery = false;
+	SessionSearch->QuerySettings.Set(SEARCH_LOBBIES,true,EOnlineComparisonOp::Equals);
+	const ULocalPlayer* localplayer = GetWorld()->GetFirstLocalPlayerFromController();
+	OnlineSessionInterface->FindSessions(*localplayer->GetPreferredUniqueNetId(),SessionSearch.ToSharedRef());
+
+}
+
 void AMPTestingCharacter::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful) {
 	if (bWasSuccessful) {
 		if (GEngine) {
@@ -181,6 +198,22 @@ void AMPTestingCharacter::OnCreateSessionComplete(FName SessionName, bool bWasSu
 	else {
 		if (GEngine) {
 			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Created session failed")));
+		}
+	}
+}
+
+void AMPTestingCharacter::OnFindSessionComplete(bool bWasSuccessful)
+{
+	for (auto Result:SessionSearch->SearchResults) {
+		FString Id = Result.GetSessionIdStr();
+		FString User = Result.Session.OwningUserName;
+		if (GEngine) {
+			GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Cyan,
+			FString::Printf(TEXT("FindSession,Id: %s, User: %s"),*Id,*User )
+			);
 		}
 	}
 }
