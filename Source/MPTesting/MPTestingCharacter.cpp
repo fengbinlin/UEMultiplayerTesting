@@ -167,6 +167,7 @@ void AMPTestingCharacter::CreateGameSession()
 	SessionSetting->bAllowJoinViaPresence = true;
 	SessionSetting->bShouldAdvertise = true;
 	SessionSetting->bUsesPresence = true;
+	SessionSetting->bUseLobbiesIfAvailable = true;
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	OnlineSessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *SessionSetting);
 	if (GEngine) {
@@ -204,6 +205,15 @@ void AMPTestingCharacter::OnCreateSessionComplete(FName SessionName, bool bWasSu
 
 void AMPTestingCharacter::OnFindSessionComplete(bool bWasSuccessful)
 {
+	if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Cyan,
+			FString::Printf(TEXT("FindSessionComplete"))
+		);
+	}
+
 	for (auto Result:SessionSearch->SearchResults) {
 		FString Id = Result.GetSessionIdStr();
 		FString User = Result.Session.OwningUserName;
