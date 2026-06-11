@@ -15,10 +15,15 @@ class MULTIPLAYERSESSIONS_API UMenu : public UUserWidget
 	GENERATED_BODY()
 public:
 	UFUNCTION(BlueprintCallable)
-	void MenuSetup();
+	void MenuSetup(int32 MaxConnectionsNumSetup=4, FString Matchtype=FString(TEXT("FreeForAll")));
  
 protected:
 	virtual bool Initialize() override;
+	virtual void NativeDestruct() override;
+
+	//MultiplayerSessionsSubsystem»Øµ÷º¯Êý
+	UFUNCTION()
+	void OnCreateSession(bool bWasSuccessful);
 
 private:
 	UPROPERTY(meta=(BindWidget))
@@ -33,7 +38,12 @@ private:
 	UFUNCTION()
 	void JoinButtonClicked();
 
+	void MenuTearDown();
+
+
 	//SessionSubsystem
 	class UMultiplayerSessionsSubsystem* MultiplayerSessionsSubsystem;
 
+	int32 MaxConnectionsNum{4};
+	FString MatchType{TEXT("FreeForAll")};
 };
