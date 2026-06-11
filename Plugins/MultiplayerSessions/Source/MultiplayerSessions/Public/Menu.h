@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "OnlineSessionSettings.h"
+#include "Interfaces/OnlineSessionInterface.h"
 #include "Menu.generated.h"
 
 /**
@@ -24,6 +26,13 @@ protected:
 	//MultiplayerSessionsSubsystem»Øµ÷º¯Êý
 	UFUNCTION()
 	void OnCreateSession(bool bWasSuccessful);
+
+	void OnJoinSession(EOnJoinSessionCompleteResult::Type Result);
+	void OnFindSession(const TArray<FOnlineSessionSearchResult>& SearchResult, bool bWasSuccessful);
+	UFUNCTION()
+	void OnDestroySession(bool bWasSuccessful);
+	UFUNCTION()
+	void OnStartSession(bool bWasSuccessful);
 
 private:
 	UPROPERTY(meta=(BindWidget))
