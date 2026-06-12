@@ -60,5 +60,7 @@ private:
 	FDelegateHandle StartSessionCompleteDelegateHandle;
 	FOnDestroySessionCompleteDelegate DestroySessionCompleteDelegate;
 	FDelegateHandle DestroySessionCompleteDelegateHandle;
-
+	bool bDestroyWhenExist{ false };
+	int32 lastMaxPublicConnections{4};
+	FString lastMatchType{TEXT("FreeForAll")};
 };

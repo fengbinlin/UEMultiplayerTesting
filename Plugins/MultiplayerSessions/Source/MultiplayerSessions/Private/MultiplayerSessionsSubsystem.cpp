@@ -26,7 +26,11 @@ void UMultiplayerSessionsSubsystem::CreateSession(int32 MaxPublicConnections, FS
 	}
 	auto ExistingSession = SessionInterface->GetNamedSession(NAME_GameSession);
 	if (ExistingSession != nullptr) {
-		SessionInterface->DestroySession(NAME_GameSession);
+		lastMaxPublicConnections = MaxPublicConnections;
+		lastMatchType = MatchType;
+		bDestroyWhenExist = true;
+		DestroySession();
+		return;
 	}
 	CreateSessionCompleteDelegateHandle = SessionInterface->AddOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegate);
 	LastSessionSettings = MakeShareable(new FOnlineSessionSettings());
@@ -38,7 +42,7 @@ void UMultiplayerSessionsSubsystem::CreateSession(int32 MaxPublicConnections, FS
 	LastSessionSettings->bUsesPresence = true;
 	LastSessionSettings->bUseLobbiesIfAvailable = true;
 	LastSessionSettings->Set(FName("MatchType"), MatchType, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
-	
+	LastSessionSettings->BuildUniqueId = 1;
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	if (!SessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *LastSessionSettings)) {
 		if (GEngine) {
@@ -111,6 +115,17 @@ void UMultiplayerSessionsSubsystem::StartSession() {
 
 void UMultiplayerSessionsSubsystem::DestroySession() {
 
+	if (!SessionInterface) {
+		MultiplayerOnDestroySessionComplete.Broadcast(false);
+		return;
+	}
+
+	DestroySessionCompleteDelegateHandle = SessionInterface->AddOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegate);
+	if (!SessionInterface->DestroySession(NAME_GameSession)) {
+		MultiplayerOnDestroySessionComplete.Broadcast(false);
+		SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegateHandle);
+	}
+	
 
 }
 
@@ -166,7 +181,14 @@ void UMultiplayerSessionsSubsystem::OnJoinSessionComplete(FName SessionName, EOn
 }
 
 void UMultiplayerSessionsSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful) {
-
+	if (SessionInterface) {
+		SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegateHandle);
+	}
+	if (bWasSuccessful && bDestroyWhenExist) {
+		bDestroyWhenExist = false;
+		CreateSession(lastMaxPublicConnections, lastMatchType);
+	}
+	MultiplayerOnDestroySessionComplete.Broadcast(bWasSuccessful);
 
 }
 

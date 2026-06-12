@@ -7,10 +7,12 @@
 #include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSubsystem.h"
 #include "MultiplayerSessionsSubsystem.h"
-void UMenu::MenuSetup(int32 MaxConnectionsNumSetup, FString MatchtypeSetup)
+void UMenu::MenuSetup(int32 MaxConnectionsNumSetup, FString MatchtypeSetup, FString LobbyPathSetup)
 {
+	LobbyPath = FString::Printf(TEXT("%s?listen"),*LobbyPathSetup);
 	MaxConnectionsNum = MaxConnectionsNumSetup;
 	MatchType = MatchtypeSetup;
+
 	AddToViewport();
 	SetVisibility(ESlateVisibility::Visible);
 	bIsFocusable = true;
@@ -75,7 +77,7 @@ void UMenu::OnCreateSession(bool bWasSuccessful)
 		}
 		UWorld* World = GetWorld();
 		if (World) {
-			World->ServerTravel("/Game/ThirdPerson/Lobby?listen");
+			World->ServerTravel(LobbyPath);
 		}
 	}
 	else {
@@ -87,6 +89,7 @@ void UMenu::OnCreateSession(bool bWasSuccessful)
 				FString(TEXT("Session created Fail!"))
 			);
 		}
+		HostButton->SetIsEnabled(true);
 	}
 
 
@@ -98,6 +101,7 @@ void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 	if (Result != EOnJoinSessionCompleteResult::Success)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, TEXT("Join Session Failed"));
+		JoinButton->SetIsEnabled(true);
 		return;
 	}
 	IOnlineSubsystem* OnlineSubsyetem = IOnlineSubsystem::Get();
@@ -108,6 +112,7 @@ void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 			if (!SessionInterface->GetResolvedConnectString(NAME_GameSession, Address) || Address.IsEmpty())
 			{
 				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, TEXT("Failed to resolve connect string"));
+				JoinButton->SetIsEnabled(true);
 				return;
 			}
 			if (GEngine)
@@ -119,7 +124,14 @@ void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 				PlayerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
 			}
 		}
+		else {
+			JoinButton->SetIsEnabled(true);
+		}
 	}
+	else {
+		JoinButton->SetIsEnabled(true);
+	}
+	
 }
 
 void UMenu::OnFindSession(const TArray<FOnlineSessionSearchResult>& SearchResult, bool bWasSuccessful)
@@ -133,6 +145,7 @@ void UMenu::OnFindSession(const TArray<FOnlineSessionSearchResult>& SearchResult
 		);
 	}
 	if (MultiplayerSessionsSubsystem == nullptr) {
+		JoinButton->SetIsEnabled(true);
 		return;
 	}
 	for (auto Result : SearchResult) {
@@ -148,7 +161,11 @@ void UMenu::OnFindSession(const TArray<FOnlineSessionSearchResult>& SearchResult
 				);
 			}
 			MultiplayerSessionsSubsystem->JoinSession(Result);
+			return;
 		}
+	}
+	if (bWasSuccessful == false || SearchResult.Num()<=0) {
+		JoinButton->SetIsEnabled(true);
 	}
 }
 
@@ -162,6 +179,7 @@ void UMenu::OnStartSession(bool bWasSuccessful)
 
 void UMenu::HostButtonClicked()
 {
+	HostButton->SetIsEnabled(false);
 	if (MultiplayerSessionsSubsystem) {
 		MultiplayerSessionsSubsystem->CreateSession(MaxConnectionsNum,MatchType);
 		
@@ -170,6 +188,7 @@ void UMenu::HostButtonClicked()
 
 void UMenu::JoinButtonClicked()
 {
+	JoinButton->SetIsEnabled(false);
 	if (MultiplayerSessionsSubsystem) {
 		MultiplayerSessionsSubsystem->FindSession(10000);
 	}
