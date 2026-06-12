@@ -95,13 +95,26 @@ void UMenu::OnCreateSession(bool bWasSuccessful)
 
 void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 {
+	if (Result != EOnJoinSessionCompleteResult::Success)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, TEXT("Join Session Failed"));
+		return;
+	}
 	IOnlineSubsystem* OnlineSubsyetem = IOnlineSubsystem::Get();
 	if (OnlineSubsyetem) {
 		IOnlineSessionPtr SessionInterface = OnlineSubsyetem->GetSessionInterface();
 		if (SessionInterface) {
 			FString Address;
-			SessionInterface->GetResolvedConnectString(NAME_GameSession, Address);
-			APlayerController* PlayerController = GetGameInstance()->GetFirstLocalPlayerController();
+			if (!SessionInterface->GetResolvedConnectString(NAME_GameSession, Address) || Address.IsEmpty())
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, TEXT("Failed to resolve connect string"));
+				return;
+			}
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Blue, FString::Printf(TEXT("Address %s"),*Address) );
+			}
+			APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
 			if (PlayerController) {
 				PlayerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
 			}
@@ -111,6 +124,14 @@ void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 
 void UMenu::OnFindSession(const TArray<FOnlineSessionSearchResult>& SearchResult, bool bWasSuccessful)
 {
+	if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Yellow,
+			FString(TEXT("Menu: OnFindSessionComplate"))
+		);
+	}
 	if (MultiplayerSessionsSubsystem == nullptr) {
 		return;
 	}
@@ -118,6 +139,14 @@ void UMenu::OnFindSession(const TArray<FOnlineSessionSearchResult>& SearchResult
 		FString SettingValue;
 		Result.Session.SessionSettings.Get(FName("MatchType"), SettingValue);
 		if (SettingValue == MatchType) {
+			if (GEngine) {
+				GEngine->AddOnScreenDebugMessage(
+					-1,
+					15.f,
+					FColor::Blue,
+					FString(TEXT("Menu: FindNeedSession"))
+				);
+			}
 			MultiplayerSessionsSubsystem->JoinSession(Result);
 		}
 	}
